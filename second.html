@@ -1,0 +1,152 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const ShapeCatcherGame());
+}
+
+class ShapeCatcherGame extends StatelessWidget {
+  const ShapeCatcherGame({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Shape Catcher',
+      debugShowCheckedModeBanner: false,
+      home: const GameScreen(),
+    );
+  }
+}
+
+class GameScreen extends StatefulWidget {
+  const GameScreen({super.key});
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> {
+  double basketX = 0; // basket position (-1.0 to 1.0)
+  double shapeX = 0;
+  double shapeY = -1;
+  int score = 0;
+  bool isPlaying = false;
+  Timer? gameTimer;
+  final Random random = Random();
+
+  void startGame() {
+    score = 0;
+    isPlaying = true;
+    shapeY = -1;
+    shapeX = (random.nextDouble() * 2) - 1; // Random X pos (-1 to 1)
+    gameTimer = Timer.periodic(const Duration(milliseconds: 20), (timer) {
+      setState(() {
+        shapeY += 0.02; // falling speed
+        if (shapeY > 1) {
+          // Missed the shape
+          shapeY = -1;
+          shapeX = (random.nextDouble() * 2) - 1;
+        }
+
+        // Check collision
+        if ((shapeY > 0.85) && (shapeX - basketX).abs() < 0.2) {
+          score++;
+          shapeY = -1;
+          shapeX = (random.nextDouble() * 2) - 1;
+        }
+      });
+    });
+  }
+
+  void moveBasket(double deltaX) {
+    setState(() {
+      basketX += deltaX;
+      if (basketX < -1) basketX = -1;
+      if (basketX > 1) basketX = 1;
+    });
+  }
+
+  void stopGame() {
+    gameTimer?.cancel();
+    isPlaying = false;
+  }
+
+  @override
+  void dispose() {
+    stopGame();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black87,
+      appBar: AppBar(
+        title: const Text("Shape Catcher Game"),
+        backgroundColor: Colors.deepPurple,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              stopGame();
+              startGame();
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Score
+            Positioned(
+              top: 20,
+              left: 20,
+              child: Text(
+                "Score: $score",
+                style: const TextStyle(color: Colors.white, fontSize: 22),
+              ),
+            ),
+
+            // Falling Shape
+            Align(
+              alignment: Alignment(shapeX, shapeY),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+
+            // Basket
+            Align(
+              alignment: Alignment(basketX, 0.9),
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  moveBasket(details.delta.dx / 150); // drag movement
+                },
+                child: Container(
+                  width: 100,
+                  height: 20,
+                  color: Colors.green,
+                ),
+              ),
+            ),
+
+            // Start Button
+            if (!isPlaying)
+              Center(
+                child: ElevatedButton(
+                  onPressed: startGame,
+                  child: const Text("Start Game"),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}

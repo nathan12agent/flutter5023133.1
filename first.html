@@ -1,0 +1,23 @@
+import 'package:flutter/material.dart'; // ✅ Fixed import
+
+void main() {
+  runApp(const MyApp()); // ✅ No space issues
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key}); // ✅ Correct constructor format
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('HELLO WORLD'), // ✅ Spacing
+        ),
+        body: const Center(
+          child: Text('Welcome to Flutter'), // ✅ Capitalized sentence
+        ),
+      ),
+    );
+  }
+}

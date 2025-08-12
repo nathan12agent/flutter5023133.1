@@ -1,0 +1,190 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const AimTrainerApp());
+}
+
+class AimTrainerApp extends StatelessWidget {
+  const AimTrainerApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: "Aim Trainer",
+      debugShowCheckedModeBanner: false,
+      home: const AimTrainerGame(),
+    );
+  }
+}
+
+class AimTrainerGame extends StatefulWidget {
+  const AimTrainerGame({super.key});
+
+  @override
+  State<AimTrainerGame> createState() => _AimTrainerGameState();
+}
+
+class _AimTrainerGameState extends State<AimTrainerGame> {
+  final Random _random = Random();
+  List<Offset> targets = [];
+  int score = 0;
+  int timeLeft = 30; // seconds
+  bool isPlaying = false;
+  Timer? gameTimer;
+  Timer? targetTimer;
+
+  // Difficulty settings
+  int targetCount = 1;
+  int targetChangeMs = 1500; // milliseconds
+
+  void startGame(String difficulty) {
+    // Difficulty presets
+    if (difficulty == "Easy") {
+      targetCount = 1;
+      targetChangeMs = 1500;
+    } else if (difficulty == "Medium") {
+      targetCount = 2;
+      targetChangeMs = 1000;
+    } else if (difficulty == "Hard") {
+      targetCount = 3;
+      targetChangeMs = 700;
+    }
+
+    setState(() {
+      score = 0;
+      timeLeft = 30;
+      isPlaying = true;
+    });
+
+    generateTargets();
+
+    // Timer for game countdown
+    gameTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          stopGame();
+        }
+      });
+    });
+
+    // Timer to refresh targets
+    targetTimer = Timer.periodic(Duration(milliseconds: targetChangeMs), (timer) {
+      generateTargets();
+    });
+  }
+
+  void generateTargets() {
+    final size = MediaQuery.of(context).size;
+    List<Offset> newTargets = [];
+    for (int i = 0; i < targetCount; i++) {
+      double x = _random.nextDouble() * (size.width - 80) + 40;
+      double y = _random.nextDouble() * (size.height - 200) + 100;
+      newTargets.add(Offset(x, y));
+    }
+    setState(() {
+      targets = newTargets;
+    });
+  }
+
+  void hitTarget(int index) {
+    setState(() {
+      score++;
+      targets.removeAt(index);
+    });
+  }
+
+  void stopGame() {
+    gameTimer?.cancel();
+    targetTimer?.cancel();
+    setState(() {
+      isPlaying = false;
+      targets.clear();
+    });
+  }
+
+  @override
+  void dispose() {
+    stopGame();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black87,
+      appBar: AppBar(
+        title: const Text("Aim Trainer"),
+        backgroundColor: Colors.deepPurple,
+      ),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Score and Timer
+            Positioned(
+              top: 20,
+              left: 20,
+              child: Text(
+                "Score: $score",
+                style: const TextStyle(color: Colors.white, fontSize: 22),
+              ),
+            ),
+            Positioned(
+              top: 20,
+              right: 20,
+              child: Text(
+                "Time: $timeLeft",
+                style: const TextStyle(color: Colors.white, fontSize: 22),
+              ),
+            ),
+
+            // Targets
+            for (int i = 0; i < targets.length; i++)
+              Positioned(
+                left: targets[i].dx - 20,
+                top: targets[i].dy - 20,
+                child: GestureDetector(
+                  onTap: () => hitTarget(i),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Start Screen
+            if (!isPlaying)
+              Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => startGame("Easy"),
+                      child: const Text("Start Easy"),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () => startGame("Medium"),
+                      child: const Text("Start Medium"),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () => startGame("Hard"),
+                      child: const Text("Start Hard"),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
